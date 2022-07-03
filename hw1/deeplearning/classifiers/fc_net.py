@@ -46,6 +46,10 @@ class TwoLayerNet(object):
         # and biases using the keys 'W2' and 'b2'.                                 #
         ############################################################################
         pass
+        self.params["W1"] = np.random.normal(0,weight_scale,size=(input_dim,hidden_dim))
+        self.params["b1"] = np.zeros(shape=(1,hidden_dim))
+        self.params["W2"] = np.random.normal(0,weight_scale,size=(hidden_dim,num_classes))
+        self.params["b2"] = np.zeros(shape=(1,num_classes))
         ############################################################################
         #                             END OF YOUR CODE                             #
         ############################################################################
@@ -75,6 +79,9 @@ class TwoLayerNet(object):
         # class scores for X and storing them in the scores variable.              #
         ############################################################################
         pass
+        W1, W2, b1, b2 = self.params["W1"], self.params["W2"], self.params["b1"], self.params["b2"]
+        l1, cache1 = affine_relu_forward(X,W1,b1)
+        scores, cache2 = affine_relu_forward(l1,W2,b2)
         ############################################################################
         #                             END OF YOUR CODE                             #
         ############################################################################
@@ -96,6 +103,17 @@ class TwoLayerNet(object):
         # of 0.5 to simplify the expression for the gradient.                      #
         ############################################################################
         pass
+        loss, dscores = softmax_loss(scores,y)
+        dl1, dw2, db2 = affine_relu_backward(dscores,cache2)
+        dx, dw1, db1 = affine_relu_backward(dl1,cache1)
+        grads["W1"] = dw1
+        grads["W2"] = dw2
+        grads["b1"] = db1
+        grads["b2"] = db2
+        loss += 0.5 * self.reg * np.sum(W1**2)
+        loss += 0.5 * self.reg * np.sum(W2**2)
+        grads["W1"] += self.reg * W1
+        grads["W2"] += self.reg * W2
         ############################################################################
         #                             END OF YOUR CODE                             #
         ############################################################################
@@ -161,6 +179,12 @@ class FullyConnectedNet(object):
         # beta2, etc. Scale parameters should be initialized to one and shift      #
         # parameters should be initialized to zero.                                #
         ############################################################################
+        all_dims = hidden_dims
+        all_dims.insert(0,input_dim)
+        all_dims.insert(len(all_dims),num_classes)
+        for i in range(1,len(all_dims)):
+            self.params["W"+str(i)] = np.random.normal(0,weight_scale,size=(all_dims[i-1],all_dims[i]))
+            self.params["b"+str(i)] = np.zeros((1,all_dims[i]))
         pass
         ############################################################################
         #                             END OF YOUR CODE                             #
@@ -219,10 +243,16 @@ class FullyConnectedNet(object):
         # layer, etc.                                                              #
         ############################################################################
         pass
+        cache = {}
+        l = X
+        for i in range(1,self.num_layers+1):
+            l, cache_ = affine_relu_forward(l, self.params["W"+str(i)], self.params["b"+str(i)])
+            cache[i] = cache_
+        # last layer is scores
+        scores = l
         ############################################################################
         #                             END OF YOUR CODE                             #
         ############################################################################
-
         # If test mode return early
         if mode == 'test':
             return scores
@@ -243,6 +273,13 @@ class FullyConnectedNet(object):
         # of 0.5 to simplify the expression for the gradient.                      #
         ############################################################################
         pass
+        loss, dl = softmax_loss(scores, y)
+        for i in range(self.num_layers,0,-1):
+            dl, dw, db = affine_relu_backward(dl,cache[i])
+            loss += 0.5 * self.reg * (self.params["W"+str(i)]**2).sum()
+            grads["W"+str(i)] = dw + self.reg * self.params["W"+str(i)]
+            grads["b"+str(i)] = db
+
         ############################################################################
         #                             END OF YOUR CODE                             #
         ############################################################################
