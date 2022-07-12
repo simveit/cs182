@@ -246,7 +246,12 @@ class FullyConnectedNet(object):
         cache = {}
         l = X
         for i in range(1,self.num_layers+1):
-            l, cache_ = affine_relu_forward(l, self.params["W"+str(i)], self.params["b"+str(i)])
+            if self.use_batchnorm and i < len(self.bn_params):
+                l, cache_ = affine_relu_batchnorm_forward(l, self.params["W" + str(i)], self.params["b" + str(i)],self.bn_params[i])
+            elif self.use_dropout:
+                l, cache_ = affine_relu_dropout_forward(l, self.params["W" + str(i)], self.params["b" + str(i)],self.dropout_param)
+            else:
+                l, cache_ = affine_relu_forward(l, self.params["W"+str(i)], self.params["b"+str(i)])
             cache[i] = cache_
         # last layer is scores
         scores = l
@@ -275,7 +280,12 @@ class FullyConnectedNet(object):
         pass
         loss, dl = softmax_loss(scores, y)
         for i in range(self.num_layers,0,-1):
-            dl, dw, db = affine_relu_backward(dl,cache[i])
+            if self.use_batchnorm and i < len(self.bn_params):
+                dl, dw, db = affine_relu_batchnorm_backward(dl, cache[i])
+            elif self.use_dropout:
+                dl, dw, db = affine_relu_dropout_backward(dl, cache[i])
+            elif not self.use_dropout:
+                dl, dw, db = affine_relu_backward(dl,cache[i])
             loss += 0.5 * self.reg * (self.params["W"+str(i)]**2).sum()
             grads["W"+str(i)] = dw + self.reg * self.params["W"+str(i)]
             grads["b"+str(i)] = db

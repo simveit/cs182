@@ -179,11 +179,20 @@ def batchnorm_forward(x, gamma, beta, bn_param):
         # storing your result in the running_mean and running_var variables.        #
         #############################################################################
         pass
+        z0 = x.mean(axis=0)
+        z1 = x - z0
+        z2 = z1 ** 2
+        z3 = z2.mean(axis=0)
+        z4 = np.sqrt(z3 + eps)
+        z5 = 1 / z4
+        z6 = z1 * z5
+        z7 = z6 * gamma
         sample_mean = np.mean(x,axis=0)
-        sample_var = np.var(x,axis=0)
+        sample_var = z3
         running_mean = momentum * running_mean + (1 - momentum) * sample_mean
         running_var = momentum * running_var + (1 - momentum) * sample_var
-        out = (x-sample_mean)/np.sqrt(sample_var+eps) * gamma + beta
+        out = z7 + beta
+        cache = (x, gamma, beta, eps, z1, z2, z3, z4, z5, z6, z7)
         #############################################################################
         #                             END OF YOUR CODE                              #
         #############################################################################
@@ -205,7 +214,6 @@ def batchnorm_forward(x, gamma, beta, bn_param):
     # Store the updated running means back into bn_param
     bn_param['running_mean'] = running_mean
     bn_param['running_var'] = running_var
-    cache = (x,gamma,beta,eps)
     return out, cache
 
 
@@ -226,7 +234,7 @@ def batchnorm_backward(dout, cache):
     - dgamma: Gradient with respect to scale parameter gamma, of shape (D,)
     - dbeta: Gradient with respect to shift parameter beta, of shape (D,)
     """
-    x, gamma, beta, epsilon = cache
+    x, gamma, beta, epsilon, z1, z2, z3, z4, z5, z6, z7 = cache
     N,D = x.shape
     dx, dgamma, dbeta = None, None, None
     #############################################################################
@@ -234,14 +242,6 @@ def batchnorm_backward(dout, cache):
     # results in the dx, dgamma, and dbeta variables.                           #
     #############################################################################
     pass
-    z0 = x.mean(axis=0)
-    z1 = x-z0
-    z2 = z1**2
-    z3 = z2.mean(axis=0)
-    z4 = np.sqrt(z3 + epsilon)
-    z5 = 1/z4
-    z6 = z1*z5
-    z7 = z6*gamma
     dz7 = dout
     dbeta = dout.sum(axis=0)
     dgamma = (dz7*z6).sum(axis=0)
@@ -324,6 +324,8 @@ def dropout_forward(x, dropout_param):
         # Store the dropout mask in the mask variable.                            #
         ###########################################################################
         pass
+        mask = (np.random.rand(*x.shape) < p)/p
+        out = x * mask
         ###########################################################################
         #                            END OF YOUR CODE                             #
         ###########################################################################
@@ -353,6 +355,7 @@ def dropout_backward(dout, cache):
         # TODO: Implement the training phase backward pass for inverted dropout.  #
         ###########################################################################
         pass
+        dx = dout * mask
         ###########################################################################
         #                            END OF YOUR CODE                             #
         ###########################################################################
@@ -580,10 +583,12 @@ def softmax_loss(x, y):
     - loss: Scalar giving the loss
     - dx: Gradient of the loss with respect to x
     """
-    probs = np.exp(x - np.max(x, axis=1, keepdims=True))
-    probs /= np.sum(probs, axis=1, keepdims=True)
+    shifted_logits = x - np.max(x, axis=1, keepdims=True)
+    Z = np.sum(np.exp(shifted_logits), axis=1, keepdims=True)
+    log_probs = shifted_logits - np.log(Z)
+    probs = np.exp(log_probs)
     N = x.shape[0]
-    loss = -np.sum(np.log(probs[np.arange(N), y])) / N
+    loss = -np.sum(log_probs[np.arange(N), y]) / N
     dx = probs.copy()
     dx[np.arange(N), y] -= 1
     dx /= N
