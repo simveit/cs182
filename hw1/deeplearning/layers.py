@@ -324,7 +324,7 @@ def dropout_forward(x, dropout_param):
         # Store the dropout mask in the mask variable.                            #
         ###########################################################################
         pass
-        mask = (np.random.rand(*x.shape) < p)/p
+        mask = (np.random.rand(*x.shape) > p)/p
         out = x * mask
         ###########################################################################
         #                            END OF YOUR CODE                             #
@@ -387,12 +387,17 @@ def conv_forward_naive(x, w, b, conv_param):
       W' = 1 + (W + 2 * pad - WW) / stride
     - cache: (x, w, b, conv_param)
     """
-    out = None
+    N, C, H, W = x.shape
+    F, C, HH, WW = w.shape
+    stride = conv_param["stride"]
+    pad = conv_param["pad"]
+    out = np.zeros((int(N),int(F),int(1 + (H + 2 * pad - HH) / stride),int(1 + (W + 2 * pad - WW) / stride)))
     #############################################################################
     # TODO: Implement the convolutional forward pass.                           #
     # Hint: you can use the function np.pad for padding.                        #
     #############################################################################
     pass
+
     #############################################################################
     #                             END OF YOUR CODE                              #
     #############################################################################

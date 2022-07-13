@@ -4,6 +4,7 @@ from deeplearning.layers import *
 from deeplearning.layer_utils import *
 
 
+
 class TwoLayerNet(object):
     """
     A two-layer fully-connected neural network with ReLU nonlinearity and
@@ -163,7 +164,8 @@ class FullyConnectedNet(object):
         self.use_batchnorm = use_batchnorm
         self.use_dropout = dropout > 0
         self.reg = reg
-        self.num_layers = 1 + len(hidden_dims)
+        # input + hidden + output
+        self.num_layers = 1 + len(hidden_dims) + 1
         self.dtype = dtype
         self.params = {}
 
@@ -245,16 +247,23 @@ class FullyConnectedNet(object):
         pass
         cache = {}
         l = X
-        for i in range(1,self.num_layers+1):
-            if self.use_batchnorm and i < len(self.bn_params):
-                l, cache_ = affine_relu_batchnorm_forward(l, self.params["W" + str(i)], self.params["b" + str(i)],self.bn_params[i])
+        for i in range(0,self.num_layers-2):
+            # last layer without dropout
+            if self.use_batchnorm and self.use_dropout:
+                l, cache_ = affine_relu_batchnorm_dropout_forward(l, self.params["W" + str(i + 1)], self.params["b" + str(i + 1)],
+                                                        self.bn_params[i],self.dropout_param)
             elif self.use_dropout:
-                l, cache_ = affine_relu_dropout_forward(l, self.params["W" + str(i)], self.params["b" + str(i)],self.dropout_param)
+                l, cache_ = affine_relu_dropout_forward(l, self.params["W"+str(i+1)], self.params["b"+str(i+1)],self.dropout_param)
+            elif self.use_batchnorm :
+                l, cache_ = affine_relu_batchnorm_forward(l, self.params["W"+str(i+1)], self.params["b"+str(i+1)],self.bn_params[i])
             else:
-                l, cache_ = affine_relu_forward(l, self.params["W"+str(i)], self.params["b"+str(i)])
-            cache[i] = cache_
+                l, cache_ = affine_relu_forward(l, self.params["W"+str(i+1)], self.params["b"+str(i+1)])
+            cache[i+1] = cache_
         # last layer is scores
+        l, cache_ = affine_forward(l, self.params["W"+str(self.num_layers-1)], self.params["b"+str(self.num_layers-1)])
+        cache[self.num_layers-1] = cache_
         scores = l
+
         ############################################################################
         #                             END OF YOUR CODE                             #
         ############################################################################
@@ -279,17 +288,20 @@ class FullyConnectedNet(object):
         ############################################################################
         pass
         loss, dl = softmax_loss(scores, y)
-        for i in range(self.num_layers,0,-1):
-            if self.use_batchnorm and i < len(self.bn_params):
-                dl, dw, db = affine_relu_batchnorm_backward(dl, cache[i])
-            elif self.use_dropout:
+        for i in range(self.num_layers-1,0,-1):
+            if i == self.num_layers-1:
+                dl, dw, db = affine_backward(dl, cache[i])
+            elif self.use_batchnorm and self.use_dropout and i < self.num_layers-1:
+                dl, dw, db = affine_relu_batchnorm_dropout_backward(dl, cache[i])
+            elif self.use_dropout and i < self.num_layers - 1:
                 dl, dw, db = affine_relu_dropout_backward(dl, cache[i])
-            elif not self.use_dropout:
+            elif self.use_batchnorm and i < self.num_layers - 1:
+                dl, dw, db = affine_relu_batchnorm_backward(dl, cache[i])
+            else:
                 dl, dw, db = affine_relu_backward(dl,cache[i])
             loss += 0.5 * self.reg * (self.params["W"+str(i)]**2).sum()
             grads["W"+str(i)] = dw + self.reg * self.params["W"+str(i)]
             grads["b"+str(i)] = db
-
         ############################################################################
         #                             END OF YOUR CODE                             #
         ############################################################################
