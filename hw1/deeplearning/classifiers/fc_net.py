@@ -82,7 +82,7 @@ class TwoLayerNet(object):
         pass
         W1, W2, b1, b2 = self.params["W1"], self.params["W2"], self.params["b1"], self.params["b2"]
         l1, cache1 = affine_relu_forward(X,W1,b1)
-        scores, cache2 = affine_relu_forward(l1,W2,b2)
+        scores, cache2 = affine_forward(l1,W2,b2)
         ############################################################################
         #                             END OF YOUR CODE                             #
         ############################################################################
@@ -105,7 +105,7 @@ class TwoLayerNet(object):
         ############################################################################
         pass
         loss, dscores = softmax_loss(scores,y)
-        dl1, dw2, db2 = affine_relu_backward(dscores,cache2)
+        dl1, dw2, db2 = affine_backward(dscores,cache2)
         dx, dw1, db1 = affine_relu_backward(dl1,cache1)
         grads["W1"] = dw1
         grads["W2"] = dw2
