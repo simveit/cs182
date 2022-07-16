@@ -407,7 +407,7 @@ def conv_forward_naive(x, w, b, conv_param):
             bscal = b[f]
             for h_ in range(Hout):
                 for w_ in range(Wout):
-                    tmp0 = wmat*xmat[:,h_*stride:h_*stride + F + 1, w_*stride:w_*stride + F + 1]
+                    tmp0 = wmat*xmat[:,h_*stride:h_*stride + HH, w_*stride:w_*stride + WW]
                     out[n, f, h_, w_] = np.sum(tmp0)+bscal
     #############################################################################
     #                             END OF YOUR CODE                              #
@@ -453,8 +453,8 @@ def conv_backward_naive(dout, cache):
             for h_ in range(Hout):
                 for w_ in range(Wout):
                     #tmp0 = wmat*xmat[:,h_*stride:h_*stride + F + 1, w_*stride:w_*stride + F + 1]
-                    dw[f,:,:,:] += xp[n, :, h_*stride:h_*stride + F + 1, w_*stride:w_*stride + F + 1]*dout[n,f,h_,w_]
-                    dxp[n, :,h_*stride:h_*stride + F + 1, w_*stride:w_*stride + F + 1] += wmat * dout[n,f,h_,w_]
+                    dw[f,:,:,:] += xp[n, :, h_*stride:h_*stride + HH, w_*stride:w_*stride + WW]*dout[n,f,h_,w_]
+                    dxp[n, :,h_*stride:h_*stride + HH, w_*stride:w_*stride + WW] += wmat * dout[n,f,h_,w_]
                     db[f] += dout[n,f,h_,w_]
     #############################################################################
     #                             END OF YOUR CODE                              #
